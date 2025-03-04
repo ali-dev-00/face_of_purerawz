@@ -40,11 +40,38 @@ function face_of_purerawz_create_affiliates_table() {
         dbDelta($sql);
     }
 }
+/**
+ * Create the custom affiliates table for Face of Purerawz
+ */
+function face_of_purerawz_create_stories_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
+    $charset_collate = $wpdb->get_charset_collate();
 
+    // Check if the table already exists
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            user_id mediumint(9) NOT NULL,
+            name varchar(100) NOT NULL,
+            email varchar(100) NOT NULL,
+            social_media_handle varchar(255) DEFAULT NULL,
+            file_upload varchar(255) DEFAULT NULL,
+            status varchar(20) NOT NULL DEFAULT 'pending',
+            created_at datetime NOT NULL,
+            approved_at datetime DEFAULT NULL,
+            PRIMARY KEY (id)
+        ) $charset_collate;";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
+}
+ 
 /**
  * Handle New Affiliate Registration via AffiliateWP Hook
  */
-function face_of_purerawz_register_new_affiliate($affiliate_id, $data) {
+function    ($affiliate_id, $data) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'face_of_purerawz_affiliates';
 
@@ -264,12 +291,12 @@ function face_of_purerawz_sync_existing_affiliates() {
 }
 
 /**
- * Handle GET Request to Sync Affiliates to Custom Database
+ * Handle GET Request to Sync Affiliates to Custom Database /?sync-affiliates-to-customDb add this in url
  */
-function face_of_purerawz_handle_sync_request() {
-    if (isset($_GET['sync-affiliates-to-customDb']) && current_user_can('manage_options')) { // Restrict to admins
-        face_of_purerawz_sync_existing_affiliates();
-        wp_die('Affiliates synced to custom database successfully.', 'Sync Complete', array('response' => 200));
-    }
-}
-add_action('init', 'face_of_purerawz_handle_sync_request');
+// function face_of_purerawz_handle_sync_request() {
+//     if (isset($_GET['sync-affiliates-to-customDb']) && current_user_can('manage_options')) { // Restrict to admins
+//         face_of_purerawz_sync_existing_affiliates();
+//         wp_die('Affiliates synced to custom database successfully.', 'Sync Complete', array('response' => 200));
+//     }
+// }
+// add_action('init', 'face_of_purerawz_handle_sync_request');

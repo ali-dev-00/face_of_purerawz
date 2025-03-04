@@ -27,11 +27,11 @@ function face_of_purerawz_activate() {
         add_option('face_of_purerawz_installed', time());
     }
 
-    // Create the custom affiliates table
-    face_of_purerawz_create_affiliates_table();
-
-    // Sync existing AffiliateWP affiliates during activation (uncomment if desired)
-    // face_of_purerawz_sync_existing_affiliates();
+    
+    face_of_purerawz_create_affiliates_table(); // Create custom table for storing affiliates 
+    face_of_purerawz_create_stories_table();  // Custom table for handling stories
+   // Sync existing AffiliateWP affiliates to custom table
+     face_of_purerawz_sync_existing_affiliates();
 }
 register_activation_hook(__FILE__, 'face_of_purerawz_activate');
 
@@ -45,5 +45,6 @@ function face_of_purerawz_deactivate() {
 register_deactivation_hook(__FILE__, 'face_of_purerawz_deactivate');
 
 // Include plugin files
-require_once plugin_dir_path(__FILE__) . 'includes/create-and-sync-db-tables.php';
+require_once plugin_dir_path(__FILE__) . 'includes/create-db-tables.php';
+require_once plugin_dir_path(__FILE__) . 'includes/sync_registered_affiliates.php';
 require_once plugin_dir_path(__FILE__) . 'includes/affiliates-stories.php';
