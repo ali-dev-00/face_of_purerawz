@@ -50,7 +50,7 @@ function purerawz_story_submission_form_shortcode() {
 
             // Define the upload directory in the plugin folder
             $plugin_dir = plugin_dir_path(__FILE__); // Path to the plugin directory
-            $upload_dir = $plugin_dir . 'uploads/stories/';
+            $upload_dir = $plugin_dir . 'assets/uploads/stories/';
             
             // Create the upload directory if it doesn't exist
             if (!file_exists($upload_dir)) {
@@ -61,9 +61,9 @@ function purerawz_story_submission_form_shortcode() {
             $unique_file_name = wp_unique_filename($upload_dir, $file_name);
             $upload_path = $upload_dir . $unique_file_name;
 
-            // Move the uploaded file to the plugin's uploads/stories directory
+            // Move the uploaded file to the plugin's assets/uploads/stories/ directory
             if (move_uploaded_file($file['tmp_name'], $upload_path)) {
-                $file_upload = plugin_dir_url(__FILE__) . 'uploads/stories/' . $unique_file_name; // Store the URL
+                $file_upload = plugin_dir_url(__FILE__) . 'assets/uploads/stories/' . $unique_file_name; // Store the URL
             } else {
                 return '<p class="error">File upload failed. Please try again.</p>';
             }

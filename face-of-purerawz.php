@@ -53,3 +53,4 @@ register_deactivation_hook(__FILE__, 'face_of_purerawz_deactivate');
 require_once FACE_OF_PURERAWZ_DIR . 'includes/database.php';      // Database table creation
 require_once FACE_OF_PURERAWZ_DIR . 'includes/sync.php';          // Affiliate sync with AffiliateWP
 require_once FACE_OF_PURERAWZ_DIR . 'includes/stories.php';       // Story submission form and handling
+require_once FACE_OF_PURERAWZ_DIR . 'admin/settings.php';      // Wp admin plugin functionality 
