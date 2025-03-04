@@ -12,7 +12,6 @@ function face_of_purerawz_create_affiliates_table() {
     $table_name = $wpdb->prefix . 'face_of_purerawz_affiliates';
     $charset_collate = $wpdb->get_charset_collate();
 
-    // Check if the table already exists
     if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
         $sql = "CREATE TABLE $table_name (
             affiliate_id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -35,15 +34,15 @@ function face_of_purerawz_create_affiliates_table() {
         dbDelta($sql);
     }
 }
+
 /**
- * Create the custom affiliates table for Face of Purerawz
+ * Create the custom stories table for Face of Purerawz
  */
 function face_of_purerawz_create_stories_table() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
     $charset_collate = $wpdb->get_charset_collate();
 
-    // Check if the table already exists
     if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
         $sql = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -62,4 +61,3 @@ function face_of_purerawz_create_stories_table() {
         dbDelta($sql);
     }
 }
- 
