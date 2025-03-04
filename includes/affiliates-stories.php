@@ -1,4 +1,8 @@
 <?php
+/**
+ * File: affiliates-stories.php
+ * Description: Handles story post type and submission form for the Face of Purerawz plugin.
+ */
 
 function purerawz_register_story_post_type() {
     // Check if the post type already exists
@@ -15,9 +19,6 @@ function purerawz_register_story_post_type() {
     }
 }
 add_action('init', 'purerawz_register_story_post_type');
-
-
-
 
 function purerawz_story_submission_form_shortcode() {
     // Check if user is logged in

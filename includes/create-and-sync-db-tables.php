@@ -1,5 +1,47 @@
 <?php
 /**
+ * File: create-and-sync-db-tables.php
+ * Description: Handles database table creation and syncing for the Face of Purerawz plugin.
+ */
+
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * Create the custom affiliates table for Face of Purerawz
+ */
+function face_of_purerawz_create_affiliates_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'face_of_purerawz_affiliates';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    // Check if the table already exists
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        $sql = "CREATE TABLE $table_name (
+            affiliate_id mediumint(9) NOT NULL AUTO_INCREMENT,
+            reg_id mediumint(9) DEFAULT NULL,
+            user_id mediumint(9) NOT NULL,
+            rate decimal(10,2) NOT NULL,
+            rate_type varchar(20) NOT NULL,
+            flat_rate_basis decimal(10,2) DEFAULT NULL,
+            payment_email varchar(100) NOT NULL,
+            status varchar(20) NOT NULL,
+            earnings decimal(10,2) NOT NULL,
+            unpaid_earnings decimal(10,2) NOT NULL,
+            referrals int(11) NOT NULL,
+            visits int(11) NOT NULL,
+            date_registered datetime NOT NULL,
+            PRIMARY KEY (affiliate_id)
+        ) $charset_collate;";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
+}
+
+/**
  * Handle New Affiliate Registration via AffiliateWP Hook
  */
 function face_of_purerawz_register_new_affiliate($affiliate_id, $data) {
@@ -22,9 +64,9 @@ function face_of_purerawz_register_new_affiliate($affiliate_id, $data) {
     // Map data from AffiliateWP to match the table structure, with fallbacks
     $data_array = array(
         'affiliate_id' => $affiliate_id,
-        'reg_id' => isset($data['reg_id']) ? $data['reg_id'] : null, // Use AffiliateWP reg_id or NULL if not set
+        'reg_id' => isset($data['reg_id']) ? $data['reg_id'] : null,
         'user_id' => isset($data['user_id']) ? $data['user_id'] : 0,
-        'rate' => isset($data['rate']) ? floatval($data['rate']) : 0.00, // Ensure rate is a float
+        'rate' => isset($data['rate']) ? floatval($data['rate']) : 0.00,
         'rate_type' => isset($data['rate_type']) ? $data['rate_type'] : 'percentage',
         'flat_rate_basis' => isset($data['flat_rate_basis']) ? floatval($data['flat_rate_basis']) : null,
         'payment_email' => isset($data['payment_email']) ? $data['payment_email'] : $account_email,
@@ -93,9 +135,9 @@ function face_of_purerawz_update_affiliate($affiliate_id, $data) {
     // Map data from AffiliateWP to match the table structure, with fallbacks
     $data_array = array(
         'affiliate_id' => $affiliate_id,
-        'reg_id' => isset($data['reg_id']) ? $data['reg_id'] : null, // Use AffiliateWP reg_id or NULL if not set
+        'reg_id' => isset($data['reg_id']) ? $data['reg_id'] : null,
         'user_id' => isset($data['user_id']) ? $data['user_id'] : 0,
-        'rate' => isset($data['rate']) ? floatval($data['rate']) : 0.00, // Ensure rate is a float
+        'rate' => isset($data['rate']) ? floatval($data['rate']) : 0.00,
         'rate_type' => isset($data['rate_type']) ? $data['rate_type'] : 'percentage',
         'flat_rate_basis' => isset($data['flat_rate_basis']) ? floatval($data['flat_rate_basis']) : null,
         'payment_email' => isset($data['payment_email']) ? $data['payment_email'] : $account_email,
@@ -196,7 +238,7 @@ function face_of_purerawz_sync_existing_affiliates() {
         // Map fields from AffiliateWP to match the custom table structure
         $data = array(
             'affiliate_id' => $affiliate->affiliate_id,
-            'reg_id' => $affiliate->reg_id, // Use AffiliateWP reg_id or NULL if not set
+            'reg_id' => $affiliate->reg_id,
             'user_id' => $affiliate->user_id,
             'rate' => $affiliate->rate,
             'rate_type' => $affiliate->rate_type,
@@ -215,7 +257,7 @@ function face_of_purerawz_sync_existing_affiliates() {
         );
 
         // Check if the affiliate isn’t already in your table
-        if (!$wpdb->get_var("SELECT affiliate_id FROM $new_table WHERE affiliate_id = %d", $affiliate->affiliate_id)) {
+        if (!$wpdb->get_var($wpdb->prepare("SELECT affiliate_id FROM $new_table WHERE affiliate_id = %d", $affiliate->affiliate_id))) {
             $wpdb->insert($new_table, $data, $format);
         }
     }
