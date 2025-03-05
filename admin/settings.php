@@ -35,4 +35,36 @@ function face_of_purerawz_admin_dashboard() {
     echo '<div class="wrap"><h1>' . esc_html__('Face of Purerawz Dashboard', 'face-of-purerawz') . '</h1><p>Welcome to the Face of Purerawz admin dashboard.</p></div>';
 }
 
+// Enqueue scripts and styles for both admin pages
+function face_of_purerawz_enqueue_assets($hook) {
+    // Load only on the plugin's admin pages
+    if ($hook !== 'toplevel_page_face-of-purerawz' && $hook !== 'face-of-purerawz_page_face-of-purerawz-stories') {
+        return;
+    }
+
+    // Debug: Log to confirm the function is running
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        error_log('Enqueuing assets for Face of Purerawz admin pages: ' . $hook);
+    }
+
+    // Enqueue CSS
+    wp_enqueue_style(
+        'face-of-purerawz-admin-style',
+        FACE_OF_PURERAWZ_URL . 'assets/css/admin.css',
+        array(),
+        FACE_OF_PURERAWZ_VERSION
+    );
+
+    // Enqueue JavaScript
+    wp_enqueue_script(
+        'face-of-purerawz-admin-script',
+        FACE_OF_PURERAWZ_URL . 'assets/js/admin.js',
+        array('jquery'), // Ensure jQuery is loaded
+        FACE_OF_PURERAWZ_VERSION,
+        true // Load in footer
+    );
+}
+add_action('admin_enqueue_scripts', 'face_of_purerawz_enqueue_assets');
+
+// Include the stories request functionality
 require_once FACE_OF_PURERAWZ_DIR . 'admin/stories-request.php';

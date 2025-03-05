@@ -13,11 +13,74 @@ function face_of_purerawz_stories_request() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
 
-    add_action('admin_enqueue_scripts', 'face_of_purerawz_enqueue_scripts');
-    add_action('wp_ajax_face_of_purerawz_update_story_status', 'face_of_purerawz_update_story_status_callback');
+    // Handle status update via POST
+    if (isset($_POST['update_status']) && isset($_POST['story_id']) && isset($_POST['new_status'])) {
+        $story_id = intval($_POST['story_id']);
+        $new_status = sanitize_text_field($_POST['new_status']);
+        $approved_at = ($new_status === 'approved') ? current_time('mysql') : null;
 
-    // Fetch all stories from the table, ordered by creation date (descending)
-    $stories = $wpdb->get_results("SELECT * FROM $table_name ORDER BY created_at DESC");
+        $result = $wpdb->update(
+            $table_name,
+            array(
+                'status' => $new_status,
+                'approved_at' => $approved_at,
+            ),
+            array('id' => $story_id),
+            array('%s', '%s'),
+            array('%d')
+        );
+
+        if ($result !== false) {
+            add_settings_error(
+                'face_of_purerawz_messages',
+                'face_of_purerawz_success',
+                'Story status updated successfully.',
+                'updated'
+            );
+        } else {
+            add_settings_error(
+                'face_of_purerawz_messages',
+                'face_of_purerawz_error',
+                'Failed to update story status. Please try again.',
+                'error'
+            );
+        }
+
+        // Redirect to refresh the page and show messages
+        $current_url = remove_query_arg('update_status', add_query_arg(array('paged' => $current_page, 's' => $search_query), admin_url('admin.php?page=face-of-purerawz-stories')));
+        wp_redirect($current_url);
+        exit;
+    }
+
+    // Pagination setup
+    $per_page = 10; // Number of stories per page
+    $current_page = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
+    $offset = ($current_page - 1) * $per_page;
+
+    // Search setup
+    $search_query = isset($_GET['s']) ? sanitize_text_field($_GET['s']) : '';
+    $search_where = '';
+    if (!empty($search_query)) {
+        $search_where = $wpdb->prepare(
+            "WHERE (name LIKE %s OR email LIKE %s OR social_media_handle LIKE %s)",
+            '%' . $wpdb->esc_like($search_query) . '%',
+            '%' . $wpdb->esc_like($search_query) . '%',
+            '%' . $wpdb->esc_like($search_query) . '%'
+        );
+    }
+
+    // Count total stories for pagination
+    $total_stories = $wpdb->get_var("SELECT COUNT(*) FROM $table_name $search_where");
+    $total_pages = ceil($total_stories / $per_page);
+
+    // Fetch stories with pagination and search
+    $stories = $wpdb->get_results(
+        $wpdb->prepare(
+            "SELECT * FROM $table_name $search_where ORDER BY created_at DESC LIMIT %d OFFSET %d",
+            $per_page,
+            $offset
+        )
+    );
 
     // Display admin page
     ?>
@@ -25,6 +88,13 @@ function face_of_purerawz_stories_request() {
         <h1><?php esc_html_e('Stories Request', 'face-of-purerawz'); ?></h1>
 
         <?php settings_errors('face_of_purerawz_messages'); ?>
+
+        <!-- Search Form -->
+        <form method="GET" action="" style="margin-bottom: 20px;">
+            <input type="hidden" name="page" value="face-of-purerawz-stories">
+            <input type="text" name="s" value="<?php echo esc_attr($search_query); ?>" placeholder="<?php esc_attr_e('Search stories...', 'face-of-purerawz'); ?>" style="padding: 5px; width: 200px;">
+            <input type="submit" value="<?php esc_attr_e('Search', 'face-of-purerawz'); ?>" class="button">
+        </form>
 
         <table class="wp-list-table widefat fixed striped face-of-purerawz-stories-table">
             <thead>
@@ -85,101 +155,45 @@ function face_of_purerawz_stories_request() {
                             <td><?php echo esc_html($story->created_at); ?></td>
                             <td><?php echo esc_html($story->approved_at ?: 'N/A'); ?></td>
                             <td>
-                                <select class="face-of-purerawz-status-dropdown" data-story-id="<?php echo esc_attr($story->id); ?>">
-                                    <option value="pending" <?php selected($story->status, 'pending'); ?>>Pending</option>
-                                    <option value="approved" <?php selected($story->status, 'approved'); ?>>Approve</option>
-                                    <option value="rejected" <?php selected($story->status, 'rejected'); ?>>Reject</option>
-                                </select>
+                                <form method="post" style="display:inline;">
+                                    <input type="hidden" name="story_id" value="<?php echo esc_attr($story->id); ?>">
+                                    <select name="new_status" style="margin-right: 10px;">
+                                        <option value="pending" <?php selected($story->status, 'pending'); ?>>Pending</option>
+                                        <option value="approved" <?php selected($story->status, 'approved'); ?>>Approved</option>
+                                        <option value="rejected" <?php selected($story->status, 'rejected'); ?>>Rejected</option>
+                                    </select>
+                                    <input type="submit" name="update_status" value="Save" class="button button-small">
+                                </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="9"><?php esc_html_e('No stories submitted yet.', 'face-of-purerawz'); ?></td>
+                        <td colspan="9"><?php esc_html_e('No stories found.', 'face-of-purerawz'); ?></td>
                     </tr>
                 <?php endif; ?>
             </tbody>
         </table>
+
+        <!-- Pagination -->
+        <?php if ($total_stories > $per_page): ?>
+            <div class="tablenav bottom">
+                <div class="tablenav-pages">
+                    <?php
+                    $pagination_args = array(
+                        'base' => add_query_arg('paged', '%#%'),
+                        'format' => '',
+                        'total' => $total_pages,
+                        'current' => $current_page,
+                        'prev_text' => __('« Previous'),
+                        'next_text' => __('Next »'),
+                        'type' => 'list'
+                    );
+                    echo paginate_links($pagination_args);
+                    ?>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
     <?php
-}
-
-/**
- * Enqueue scripts and styles for the Stories Request page
- *
- * @return void
- */
-function face_of_purerawz_enqueue_scripts() {
-    $screen = get_current_screen();
-    if ($screen->base === 'toplevel_page_face-of-purerawz' || $screen->base === 'face-of-purerawz_page_face-of-purerawz-stories') {
-        wp_enqueue_style(
-            'face-of-purerawz-admin-style',
-            FACE_OF_PURERAWZ_URL . 'assets/css/admin.css',
-            array(),
-            FACE_OF_PURERAWZ_VERSION
-        );
-
-        wp_enqueue_script(
-            'face-of-purerawz-admin-script',
-            FACE_OF_PURERAWZ_URL . 'assets/js/admin.js',
-            array('jquery'),
-            FACE_OF_PURERAWZ_VERSION,
-            true
-        );
-
-        // Localize script to pass AJAX URL and nonce
-        wp_localize_script(
-            'face-of-purerawz-admin-script', // Fixed typo in variable name
-            'face_of_purerawz_ajax',
-            array(
-                'ajax_url' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('face_of_purerawz_update_status')
-            )
-        );
-    }
-}
-
-/**
- * AJAX callback to update story status
- *
- * @return void
- */
-function face_of_purerawz_update_story_status_callback() {
-    check_ajax_referer('face_of_purerawz_update_status', 'nonce');
-
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(array('message' => 'Permission denied.'));
-        wp_die();
-    }
-
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
-
-    $story_id = intval($_POST['story_id']);
-    $new_status = sanitize_text_field($_POST['new_status']);
-
-    $approved_at = ($new_status === 'approved') ? current_time('mysql') : null;
-
-    $result = $wpdb->update(
-        $table_name,
-        array(
-            'status' => $new_status,
-            'approved_at' => $approved_at,
-        ),
-        array('id' => $story_id),
-        array('%s', '%s'),
-        array('%d')
-    );
-
-    if ($result !== false) {
-        wp_send_json_success(array(
-            'message' => 'Story status updated successfully.',
-            'status' => $new_status,
-            'approved_at' => $approved_at ?: 'N/A'
-        ));
-    } else {
-        wp_send_json_error(array('message' => 'Failed to update story status. Please try again.'));
-    }
-
-    wp_die();
 }

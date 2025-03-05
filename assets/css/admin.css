@@ -9,22 +9,21 @@
     text-align: center;
 }
 
-/* Status-specific colors */
 .face-of-purerawz-status-badge.approved {
-    background-color: #46b450; /* Green for Approved */
+    background-color: #46b450;
 }
 
 .face-of-purerawz-status-badge.rejected {
-    background-color: #dc3545; /* Red for Rejected */
+    background-color: #dc3545; 
 }
 
 .face-of-purerawz-status-badge.pending {
-    background-color: #6c757d; /* Gray for Pending/Processing */
+    background-color: #6c757d; 
 }
 
-/* Style for the status dropdown in actions column */
+
 .face-of-purerawz-status-dropdown {
     margin-right: 10px;
     padding: 5px;
-    min-width: 120px; /* Ensure dropdown is wide enough for text */
-}
+    min-width: 120px; 
+}   
