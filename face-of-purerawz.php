@@ -51,6 +51,21 @@ function face_of_purerawz_deactivate() {
 }
 register_deactivation_hook(__FILE__, 'face_of_purerawz_deactivate');
 
+
+// Include frontend assets 
+function enqueue_plugin_assets() {
+    wp_enqueue_style(
+        'purerawz-frontend-style',
+        FACE_OF_PURERAWZ_URL . 'assets/css/frontend.css',
+        array(),
+        FACE_OF_PURERAWZ_VERSION
+    );
+}
+add_action('wp_enqueue_scripts', 'enqueue_plugin_assets');
+
+
+
+
 // Include required files
 require_once FACE_OF_PURERAWZ_DIR . '/includes/database.php';      // Database table creation
 require_once FACE_OF_PURERAWZ_DIR . '/includes/sync.php';          // Affiliate sync with AffiliateWP

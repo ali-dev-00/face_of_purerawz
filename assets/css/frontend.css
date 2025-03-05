@@ -1,0 +1,47 @@
+.purerawz-story-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.purerawz-story-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.purerawz-story-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.purerawz-story-card h3 {
+    margin-top: 0;
+    color: #2c3e50;
+    font-size: 1.5em;
+}
+
+.purerawz-story-card p {
+    margin: 10px 0;
+    color: #34495e;
+    line-height: 1.6;
+}
+
+.purerawz-story-card small {
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+.purerawz-story-card a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.purerawz-story-card a:hover {
+    text-decoration: underline;
+}

@@ -67,4 +67,5 @@ Z    <?php
     add_action('admin_enqueue_scripts', 'face_of_purerawz_enqueue_assets');
     
     // Include the stories request functionality
-    require_once FACE_OF_PURERAWZ_DIR . 'admin/stories-request.php';
+    require_once FACE_OF_PURERAWZ_DIR . 'admin/stories-table.php';
+    require_once FACE_OF_PURERAWZ_DIR . 'admin/get-stories.php';

@@ -1,7 +1,13 @@
 <?php
+
+
 /**
+ * 
  * Display and process the story submission form
+ * 
  */
+
+ 
 function purerawz_story_submission_form_shortcode() {
     // Check if user is logged in
     if (!is_user_logged_in()) {
@@ -95,8 +101,8 @@ function purerawz_story_submission_form_shortcode() {
     // Display the submission form
     ob_start();
     ?>
-    <form method="post" action="" enctype="multipart/form-data">
-        <div>
+   <form method="post" action="" enctype="multipart/form-data">
+         <div>
             <label for="name">Name:</label><br>
             <input type="text" id="name" name="name" required disabled style="width: 100%; max-width: 400px;" value="<?php echo esc_attr(get_user_meta(get_current_user_id(), 'nickname', true)); ?>">
         </div>
@@ -120,3 +126,49 @@ function purerawz_story_submission_form_shortcode() {
     return ob_get_clean();
 }
 add_shortcode('purerawz_story_form', 'purerawz_story_submission_form_shortcode');
+
+
+
+
+/**
+ * 
+ * Display and process the story cards by shortcode
+ * 
+*/
+
+
+function purerawz_approved_stories_shortcode() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
+
+    // Fetch approved stories, ordered by approved_at (latest first)
+    $stories = $wpdb->get_results(
+        "SELECT * FROM $table_name WHERE status = 'approved' ORDER BY approved_at DESC"
+    );
+
+    if (!$stories) {
+        return '<p>No approved stories found.</p>';
+    }
+
+    // Start output buffering for the cards
+    ob_start();
+    ?>
+    <div class="purerawz-story-cards">
+        <?php foreach ($stories as $story): ?>
+            <div class="purerawz-story-card">
+                <h3><?php echo esc_html($story->name); ?></h3>
+                <p><strong>Email:</strong> <?php echo esc_html($story->email); ?></p>
+                <?php if ($story->social_media_handle): ?>
+                    <p><strong>Social Media:</strong> <?php echo esc_html($story->social_media_handle); ?></p>
+                <?php endif; ?>
+                <?php if ($story->file_upload): ?>
+                    <p><strong>Content:</strong> <a href="<?php echo esc_url($story->file_upload); ?>" target="_blank">View File</a></p>
+                <?php endif; ?>
+                <p><small>Approved on: <?php echo esc_html($story->approved_at); ?></small></p>
+            </div>
+        <?php endforeach; ?>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('purerawz_approved_stories', 'purerawz_approved_stories_shortcode');
