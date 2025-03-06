@@ -24,14 +24,11 @@ define('FACE_OF_PURERAWZ_URL', plugin_dir_url(__FILE__));
  * Plugin Activation Hook
  */
 function face_of_purerawz_activate() {
-    // Include and call table creation functions
-    require_once FACE_OF_PURERAWZ_DIR . 'includes/database.php';
-    face_of_purerawz_create_affiliates_table();
-    face_of_purerawz_create_stories_table();
-
-    // Sync existing AffiliateWP affiliates
-    require_once FACE_OF_PURERAWZ_DIR . 'includes/sync.php';
-    face_of_purerawz_sync_existing_affiliates();
+    face_of_purerawz_create_affiliates_table(); // create affiliates table
+    face_of_purerawz_create_stories_table(); // create stories table
+    face_of_purerawz_create_referral_links_table(); // create referral links table
+    face_of_purerawz_sync_existing_affiliates(); // sync affiliates in custom table
+    face_of_purerawz_populate_referral_links(); // populate referral links
 
     // Set installation timestamp
     if (!get_option('face_of_purerawz_installed')) {
@@ -70,4 +67,5 @@ add_action('wp_enqueue_scripts', 'enqueue_plugin_assets');
 require_once FACE_OF_PURERAWZ_DIR . '/includes/database.php';      // Database table creation
 require_once FACE_OF_PURERAWZ_DIR . '/includes/sync.php';          // Affiliate sync with AffiliateWP
 require_once FACE_OF_PURERAWZ_DIR . '/includes/stories.php';       // Story submission form and handling
+require_once FACE_OF_PURERAWZ_DIR . '/includes/affiliate-link-hooks.php'; // Story submission form and handling
 require_once FACE_OF_PURERAWZ_DIR . '/admin/settings.php';      // Wp admin plugin functionality 
