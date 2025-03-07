@@ -29,8 +29,8 @@ function face_of_purerawz_activate()
     face_of_purerawz_create_affiliates_table(); // create affiliates table
     face_of_purerawz_create_stories_table(); // create stories table
     face_of_purerawz_create_referral_links_table(); // create referral links table
-    face_of_purerawz_sync_existing_affiliates(); // sync affiliates in custom table
-    face_of_purerawz_store_existing_affiliates(); // populate referral links
+    //face_of_purerawz_sync_existing_affiliates(); // sync affiliates in custom table
+    //face_of_purerawz_store_existing_affiliates(); // populate referral links
 
     // Set installation timestamp
     if (!get_option('face_of_purerawz_installed')) {
@@ -71,6 +71,7 @@ require_once FACE_OF_PURERAWZ_DIR . '/includes/database.php';      // Database t
 require_once FACE_OF_PURERAWZ_DIR . '/includes/sync.php';          // Affiliate sync with AffiliateWP
 require_once FACE_OF_PURERAWZ_DIR . '/includes/stories.php';       // Story submission form and handling
 require_once FACE_OF_PURERAWZ_DIR . '/includes/affiliate-link-hooks.php'; // Story submission form and handling
+require_once FACE_OF_PURERAWZ_DIR . '/includes/leaderboard.php'; // Leaderboard functionality
 require_once FACE_OF_PURERAWZ_DIR . '/admin/settings.php';      // Wp admin plugin functionality 
 
 // pass this in get request to sync referral links /?sync-affiliate-links
@@ -126,9 +127,41 @@ function face_of_purerawz_store_existing_affiliates() {
     }
 }
 
-// Run function on plugin activation
-function face_of_purerawz_on_activation() {
-    face_of_purerawz_store_existing_affiliates();
+/**
+ * Sync Existing Affiliates from AffiliateWP
+ */
+function face_of_purerawz_sync_existing_affiliates() {
+    global $wpdb;
+    $affiliates_table = $wpdb->prefix . 'affiliate_wp_affiliates';
+    $new_table = $wpdb->prefix . 'face_of_purerawz_affiliates';
+
+    $existing_affiliates = $wpdb->get_results("SELECT * FROM $affiliates_table");
+    
+    foreach ($existing_affiliates as $affiliate) {
+        $user = $affiliate->user_id ? get_userdata($affiliate->user_id) : null;
+        $account_email = $user ? $user->user_email : ($affiliate->email ?? '');
+
+        $data = array(
+            'affiliate_id' => $affiliate->affiliate_id,
+            'reg_id' => $affiliate->reg_id,
+            'user_id' => $affiliate->user_id,
+            'rate' => $affiliate->rate,
+            'rate_type' => $affiliate->rate_type,
+            'flat_rate_basis' => $affiliate->flat_rate_basis,
+            'payment_email' => $affiliate->payment_email,
+            'status' => $affiliate->status,
+            'earnings' => $affiliate->earnings,
+            'unpaid_earnings' => $affiliate->unpaid_earnings,
+            'referrals' => $affiliate->referrals,
+            'visits' => $affiliate->visits,
+            'date_registered' => $affiliate->date_registered,
+        );
+
+        $format = array('%d', '%d', '%d', '%f', '%s', '%f', '%s', '%s', '%f', '%f', '%d', '%d', '%s');
+
+        if (!$wpdb->get_var($wpdb->prepare("SELECT affiliate_id FROM $new_table WHERE affiliate_id = %d", $affiliate->affiliate_id))) {
+            $wpdb->insert($new_table, $data, $format);
+        }
+    }
 }
-register_activation_hook(__FILE__, 'face_of_purerawz_on_activation');
 

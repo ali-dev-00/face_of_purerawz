@@ -58,6 +58,7 @@ function face_of_purerawz_create_stories_table() {
             status varchar(20) NOT NULL DEFAULT 'pending',
             created_at datetime NOT NULL,
             approved_at datetime DEFAULT NULL,
+            has_posted TINYINT(1) NOT NULL DEFAULT 0,
             PRIMARY KEY (id)
         ) $charset_collate;";
 
