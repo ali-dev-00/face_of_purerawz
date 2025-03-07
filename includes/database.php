@@ -5,7 +5,9 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * 
  * Create the custom affiliates table for Face of Purerawz
+ * 
  */
 function face_of_purerawz_create_affiliates_table() {
     global $wpdb;
@@ -36,8 +38,10 @@ function face_of_purerawz_create_affiliates_table() {
 }
 
 /**
+ * 
  * Create the custom stories table for Face of Purerawz
-*/
+ * 
+ */
 function face_of_purerawz_create_stories_table() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
@@ -62,6 +66,7 @@ function face_of_purerawz_create_stories_table() {
     }
 }
 
+
 /**
  * 
  * Create the referral links table
@@ -83,38 +88,4 @@ function face_of_purerawz_create_referral_links_table() {
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     dbDelta($sql);
-}
-
-/**
- * 
- * Populate referral links for existing active affiliates on plugin activation
- * 
- */
-function face_of_purerawz_populate_referral_links() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'face_of_purerawz_referral_links';
-    $affiliates_table = $wpdb->prefix . 'affiliates';
-
-    $active_affiliates = $wpdb->get_results("SELECT affiliate_id FROM $affiliates_table WHERE status = 'active'");
-
-    if ($active_affiliates && function_exists('affwp_get_affiliate_referral_url')) {
-        foreach ($active_affiliates as $affiliate) {
-            $affiliate_id = $affiliate->affiliate_id;
-            $referral_url = affwp_get_affiliate_referral_url($affiliate_id);
-
-            $existing_link = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE affiliate_id = %d", $affiliate_id));
-
-            if (!$existing_link) {
-                $wpdb->insert(
-                    $table_name,
-                    array(
-                        'affiliate_id' => $affiliate_id,
-                        'referral_link' => $referral_url,
-                        'created_at' => current_time('mysql'),
-                    ),
-                    array('%d', '%s', '%s')
-                );
-            }
-        }
-    }
 }

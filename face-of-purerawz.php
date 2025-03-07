@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: Face of Purerawz
  * Plugin URI:  https://www.linkedin.com/in/mirza-ali-dev/
@@ -23,12 +24,13 @@ define('FACE_OF_PURERAWZ_URL', plugin_dir_url(__FILE__));
 /**
  * Plugin Activation Hook
  */
-function face_of_purerawz_activate() {
+function face_of_purerawz_activate()
+{
     face_of_purerawz_create_affiliates_table(); // create affiliates table
     face_of_purerawz_create_stories_table(); // create stories table
     face_of_purerawz_create_referral_links_table(); // create referral links table
     face_of_purerawz_sync_existing_affiliates(); // sync affiliates in custom table
-    face_of_purerawz_populate_referral_links(); // populate referral links
+    face_of_purerawz_store_existing_affiliates(); // populate referral links
 
     // Set installation timestamp
     if (!get_option('face_of_purerawz_installed')) {
@@ -42,7 +44,8 @@ register_activation_hook(__FILE__, 'face_of_purerawz_activate');
  */
 
 
-function face_of_purerawz_deactivate() {
+function face_of_purerawz_deactivate()
+{
     // Cleanup tasks (retain data if necessary)
     delete_option('face_of_purerawz_installed');
 }
@@ -50,7 +53,8 @@ register_deactivation_hook(__FILE__, 'face_of_purerawz_deactivate');
 
 
 // Include frontend assets 
-function enqueue_plugin_assets() {
+function enqueue_plugin_assets()
+{
     wp_enqueue_style(
         'purerawz-frontend-style',
         FACE_OF_PURERAWZ_URL . 'assets/css/frontend.css',
@@ -62,10 +66,69 @@ add_action('wp_enqueue_scripts', 'enqueue_plugin_assets');
 
 
 
-
 // Include required files
 require_once FACE_OF_PURERAWZ_DIR . '/includes/database.php';      // Database table creation
 require_once FACE_OF_PURERAWZ_DIR . '/includes/sync.php';          // Affiliate sync with AffiliateWP
 require_once FACE_OF_PURERAWZ_DIR . '/includes/stories.php';       // Story submission form and handling
 require_once FACE_OF_PURERAWZ_DIR . '/includes/affiliate-link-hooks.php'; // Story submission form and handling
 require_once FACE_OF_PURERAWZ_DIR . '/admin/settings.php';      // Wp admin plugin functionality 
+
+// pass this in get request to sync referral links /?sync-affiliate-links
+// function face_of_purerawz_handle_affiliate_sync() {
+//     if (isset($_GET['sync-affiliate-links'])) {
+//         face_of_purerawz_store_existing_affiliates();
+//         echo "Affiliate referral links synced successfully!";
+//         exit; // Stop further execution to prevent unwanted output
+//     }
+// }
+// add_action('init', 'face_of_purerawz_handle_affiliate_sync');
+
+
+
+function face_of_purerawz_store_existing_affiliates() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'face_of_purerawz_referral_links';
+    $affiliates_table = $wpdb->prefix . 'affiliate_wp_affiliates';
+
+    // Get all existing affiliates
+    $affiliates = $wpdb->get_results("SELECT affiliate_id FROM $affiliates_table");
+   
+    if ($affiliates) {
+        foreach ($affiliates as $affiliate) {
+            $affiliate_id = $affiliate->affiliate_id;
+
+            if (function_exists('affwp_get_affiliate_referral_url')) {
+                $referral_url = affwp_get_affiliate_referral_url(array('affiliate_id' => $affiliate_id));
+                echo "<pre>";
+                print_r($referral_url);
+                echo "</pre>";
+                die;
+                // Check if the affiliate already exists in the custom table
+                $existing_link = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE affiliate_id = %d", $affiliate_id));
+
+                if (!$existing_link) {
+                    // Insert the referral link if not already stored
+                    $wpdb->insert(
+                        $table_name,
+                        array(
+                            'affiliate_id'   => $affiliate_id,
+                            'referral_link'  => $referral_url,
+                            'created_at'     => current_time('mysql'),
+                        ),
+                        array('%d', '%s', '%s')
+                    );
+                }
+            }else {
+                var_dump("function not exist");
+                return;
+            }
+        }
+    }
+}
+
+// Run function on plugin activation
+function face_of_purerawz_on_activation() {
+    face_of_purerawz_store_existing_affiliates();
+}
+register_activation_hook(__FILE__, 'face_of_purerawz_on_activation');
+

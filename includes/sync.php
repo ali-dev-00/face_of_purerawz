@@ -26,7 +26,7 @@ function face_of_purerawz_register_new_affiliate($affiliate_id, $data) {
         'rate_type' => $data['rate_type'] ?? 'percentage',
         'flat_rate_basis' => floatval($data['flat_rate_basis'] ?? null),
         'payment_email' => $data['payment_email'] ?? $account_email,
-        'status' => $data['status'] ?? 'active',
+        'status' => $data['status'] ?? 'pending', // Default to 'pending' for new requests
         'earnings' => floatval($data['earnings'] ?? 0.00),
         'unpaid_earnings' => floatval($data['unpaid_earnings'] ?? 0.00),
         'referrals' => intval($data['referrals'] ?? 0),
@@ -67,7 +67,44 @@ function face_of_purerawz_register_new_affiliate($affiliate_id, $data) {
 add_action('affwp_insert_affiliate', 'face_of_purerawz_register_new_affiliate', 10, 2);
 
 /**
- * Handle Affiliate Update via AffiliateWP Hook
+ * Handle Affiliate Status Changes via AffiliateWP Hook
+ */
+function face_of_purerawz_update_affiliate_status($affiliate_id, $new_status, $old_status) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'face_of_purerawz_affiliates';
+
+    if (WP_DEBUG && defined('WP_DEBUG_LOG')) {
+        error_log('Hook fired for face_of_purerawz_update_affiliate_status with affiliate_id: ' . $affiliate_id . ', new_status: ' . $new_status . ', old_status: ' . $old_status);
+    }
+
+    $data_array = array(
+        'status' => $new_status,
+    );
+
+    $format = array('%s');
+
+    $result = $wpdb->update(
+        $table_name,
+        $data_array,
+        array('affiliate_id' => $affiliate_id),
+        $format,
+        array('%d')
+    );
+
+    if ($result === false) {
+        if (WP_DEBUG && defined('WP_DEBUG_LOG')) {
+            error_log('Failed to update status for affiliate_id ' . $affiliate_id . ': ' . $wpdb->last_error);
+        }
+    } else {
+        if (WP_DEBUG && defined('WP_DEBUG_LOG')) {
+            error_log('Successfully updated status to ' . $new_status . ' for affiliate_id ' . $affiliate_id . ' in custom table.');
+        }
+    }
+}
+add_action('affwp_set_affiliate_status', 'face_of_purerawz_update_affiliate_status', 10, 3);
+
+/**
+ * Handle Affiliate Update via AffiliateWP Hook (Excluding Status)
  */
 function face_of_purerawz_update_affiliate($affiliate_id, $data) {
     global $wpdb;
@@ -88,15 +125,13 @@ function face_of_purerawz_update_affiliate($affiliate_id, $data) {
         'rate_type' => $data['rate_type'] ?? 'percentage',
         'flat_rate_basis' => floatval($data['flat_rate_basis'] ?? null),
         'payment_email' => $data['payment_email'] ?? $account_email,
-        'status' => $data['status'] ?? 'active',
         'earnings' => floatval($data['earnings'] ?? 0.00),
         'unpaid_earnings' => floatval($data['unpaid_earnings'] ?? 0.00),
         'referrals' => intval($data['referrals'] ?? 0),
         'visits' => intval($data['visits'] ?? 0),
-        'date_registered' => $data['date_registered'] ?? current_time('mysql'),
     );
 
-    $format = array('%d', '%d', '%d', '%f', '%s', '%f', '%s', '%s', '%f', '%f', '%d', '%d', '%s');
+    $format = array('%d', '%d', '%d', '%f', '%s', '%f', '%s', '%f', '%f', '%d', '%d');
 
     // Validate and log empty or null values
     foreach ($data_array as $key => $value) {
@@ -128,68 +163,51 @@ function face_of_purerawz_update_affiliate($affiliate_id, $data) {
 add_action('affwp_update_affiliate', 'face_of_purerawz_update_affiliate', 10, 2);
 
 /**
+ * 
  * Handle Affiliate Deletion via AffiliateWP Hook
+ * 
  */
 function face_of_purerawz_delete_affiliate($affiliate_id) {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'face_of_purerawz_affiliates';
+    $affiliates_table = $wpdb->prefix . 'face_of_purerawz_affiliates';
+    $referral_links_table = $wpdb->prefix . 'face_of_purerawz_referral_links';
 
     if (WP_DEBUG && defined('WP_DEBUG_LOG')) {
         error_log('Hook fired for face_of_purerawz_delete_affiliate with affiliate_id: ' . $affiliate_id);
     }
 
-    $result = $wpdb->delete(
-        $table_name,
+    // Delete from face_of_purerawz_affiliates table
+    $result_affiliates = $wpdb->delete(
+        $affiliates_table,
         array('affiliate_id' => $affiliate_id),
         array('%d')
     );
 
-    if ($result === false) {
+    if ($result_affiliates === false) {
         if (WP_DEBUG && defined('WP_DEBUG_LOG')) {
-            error_log('Failed to delete affiliate_id ' . $affiliate_id . ' from custom table: ' . $wpdb->last_error);
+            error_log('Failed to delete affiliate_id ' . $affiliate_id . ' from face_of_purerawz_affiliates table: ' . $wpdb->last_error);
         }
     } else {
         if (WP_DEBUG && defined('WP_DEBUG_LOG')) {
-            error_log('Successfully deleted affiliate_id ' . $affiliate_id . ' from custom table.');
+            error_log('Successfully deleted affiliate_id ' . $affiliate_id . ' from face_of_purerawz_affiliates table.');
+        }
+    }
+
+    // Delete from face_of_purerawz_referral_links table
+    $result_referral_links = $wpdb->delete(
+        $referral_links_table,
+        array('affiliate_id' => $affiliate_id),
+        array('%d')
+    );
+
+    if ($result_referral_links === false) {
+        if (WP_DEBUG && defined('WP_DEBUG_LOG')) {
+            error_log('Failed to delete affiliate_id ' . $affiliate_id . ' from face_of_purerawz_referral_links table: ' . $wpdb->last_error);
+        }
+    } else {
+        if (WP_DEBUG && defined('WP_DEBUG_LOG')) {
+            error_log('Successfully deleted affiliate_id ' . $affiliate_id . ' from face_of_purerawz_referral_links table.');
         }
     }
 }
 add_action('affwp_delete_affiliate', 'face_of_purerawz_delete_affiliate', 10, 2);
-
-/**
- * Sync Existing Affiliates from AffiliateWP
- */
-function face_of_purerawz_sync_existing_affiliates() {
-    global $wpdb;
-    $affiliates_table = $wpdb->prefix . 'affiliate_wp_affiliates';
-    $new_table = $wpdb->prefix . 'face_of_purerawz_affiliates';
-
-    $existing_affiliates = $wpdb->get_results("SELECT * FROM $affiliates_table");
-    
-    foreach ($existing_affiliates as $affiliate) {
-        $user = $affiliate->user_id ? get_userdata($affiliate->user_id) : null;
-        $account_email = $user ? $user->user_email : ($affiliate->email ?? '');
-
-        $data = array(
-            'affiliate_id' => $affiliate->affiliate_id,
-            'reg_id' => $affiliate->reg_id,
-            'user_id' => $affiliate->user_id,
-            'rate' => $affiliate->rate,
-            'rate_type' => $affiliate->rate_type,
-            'flat_rate_basis' => $affiliate->flat_rate_basis,
-            'payment_email' => $affiliate->payment_email,
-            'status' => $affiliate->status,
-            'earnings' => $affiliate->earnings,
-            'unpaid_earnings' => $affiliate->unpaid_earnings,
-            'referrals' => $affiliate->referrals,
-            'visits' => $affiliate->visits,
-            'date_registered' => $affiliate->date_registered,
-        );
-
-        $format = array('%d', '%d', '%d', '%f', '%s', '%f', '%s', '%s', '%f', '%f', '%d', '%d', '%s');
-
-        if (!$wpdb->get_var($wpdb->prepare("SELECT affiliate_id FROM $new_table WHERE affiliate_id = %d", $affiliate->affiliate_id))) {
-            $wpdb->insert($new_table, $data, $format);
-        }
-    }
-}
