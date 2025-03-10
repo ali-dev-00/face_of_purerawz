@@ -58,7 +58,6 @@ function face_of_purerawz_create_stories_table() {
             status varchar(20) NOT NULL DEFAULT 'pending',
             created_at datetime NOT NULL,
             approved_at datetime DEFAULT NULL,
-            has_posted TINYINT(1) NOT NULL DEFAULT 0,
             PRIMARY KEY (id)
         ) $charset_collate;";
 
@@ -90,3 +89,32 @@ function face_of_purerawz_create_referral_links_table() {
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     dbDelta($sql);
 }
+
+
+/**
+ * 
+ * Create the voting table for 
+ *
+*/
+
+
+function purerawz_create_votes_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'purerawz_story_votes';
+
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE $table_name (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        story_id BIGINT UNSIGNED NOT NULL,
+        user_ip VARCHAR(45) NOT NULL,
+        vote_type ENUM('like', 'dislike') NOT NULL,
+        UNIQUE KEY unique_vote (story_id, user_ip)
+    ) $charset_collate;";
+
+    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+    dbDelta($sql);
+}
+
+register_activation_hook(__FILE__, 'purerawz_create_votes_table');
+

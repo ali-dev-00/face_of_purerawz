@@ -45,3 +45,18 @@
 .purerawz-story-card a:hover {
     text-decoration: underline;
 }
+
+/* vote button style */
+
+
+.vote-btn {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    margin: 5px;
+}
+
+.voted {
+    color: red;
+}

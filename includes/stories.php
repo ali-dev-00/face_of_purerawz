@@ -117,74 +117,191 @@ add_shortcode('purerawz_story_form', 'purerawz_story_submission_form_shortcode')
 
 
 
+
 /**
- * 
  * Display and process the story cards by shortcode
- * 
-*/
-
-
+ */
 function purerawz_approved_stories_shortcode() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
-    $votes_table = $wpdb->prefix . 'purerawz_story_votes';
-
-    // Fetch approved stories
-    $stories = $wpdb->get_results(
-        "SELECT s.*, 
-                (SELECT COUNT(*) FROM $votes_table v WHERE v.story_id = s.id AND v.vote_type = 'like') AS likes,
-                (SELECT COUNT(*) FROM $votes_table v WHERE v.story_id = s.id AND v.vote_type = 'dislike') AS dislikes
-        FROM $table_name s
-        WHERE s.status = 'approved'
-        ORDER BY s.approved_at DESC"
-    );
-
-    if (!$stories) {
-        return '<p>No approved stories found.</p>';
-    }
+    $votes_table = $wpdb->prefix . 'face_of_purerawz_story_votes';
 
     ob_start();
     ?>
-    <div class="purerawz-story-cards">
-        <?php foreach ($stories as $story): ?>
-            <div class="purerawz-story-card" data-story-id="<?php echo esc_attr($story->id); ?>">
-                <h3><?php echo esc_html($story->name); ?></h3>
-                <p><strong>Email:</strong> <?php echo esc_html($story->email); ?></p>
-                <?php if ($story->social_media_handle): ?>
-                    <p><strong>Social Media:</strong> <?php echo esc_html($story->social_media_handle); ?></p>
-                <?php endif; ?>
-                <?php if ($story->file_upload): ?>
-                    <p><strong>Content:</strong> <a href="<?php echo esc_url($story->file_upload); ?>" target="_blank">View File</a></p>
-                <?php endif; ?>
-                <p><small>Approved on: <?php echo esc_html($story->approved_at); ?></small></p>
-
-                <!-- Voting Section -->
-                <div class="vote-section">
-                    <button class="vote-btn like-btn" data-vote="like">
-                        👍 <span class="like-count"><?php echo esc_html($story->likes); ?></span>
-                    </button>
-                    <button class="vote-btn dislike-btn" data-vote="dislike">
-                        👎 <span class="dislike-count"><?php echo esc_html($story->dislikes); ?></span>
-                    </button>
-                </div>
-            </div>
-        <?php endforeach; ?>
+    <div class="purerawz-story-cards" id="story-cards">
+        <p>Loading stories...</p>
     </div>
 
+    <script>
+        function fetchStories() {
+            fetch('<?php echo admin_url("admin-ajax.php?action=fetch_approved_stories"); ?>', {
+                credentials: 'same-origin'
+            })
+                .then(response => response.text())
+                .then(data => {
+                    console.log("Stories data:", data);
+                    document.getElementById("story-cards").innerHTML = data;
+                })
+                .catch(error => console.error("Error fetching stories:", error));
+        }
 
-    <style>
-        .vote-btn {
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-size: 1.2em;
-            margin: 5px;
+        // Function to cast a vote for a story
+        function castStoryVote(storyId, voteType) {
+            const userIp = '<?php echo esc_js($_SERVER['REMOTE_ADDR']); ?>'; // Get user IP
+            fetch('<?php echo admin_url("admin-ajax.php?action=cast_story_vote"); ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `story_id=${storyId}&vote_type=${voteType}&user_ip=${encodeURIComponent(userIp)}&nonce=<?php echo wp_create_nonce('story_vote_nonce'); ?>`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        fetchStories(); // Refresh stories on successful vote
+                        console.log('Vote cast successfully at ' + new Date().toLocaleTimeString());
+                    } else {
+                        console.error('Vote failed:', data.data.message);
+                    }
+                })
+                .catch(error => console.error('Error casting vote:', error));
         }
-        .voted {
-            color: red;
-        }
-    </style>
+
+        fetchStories();
+    </script>
     <?php
     return ob_get_clean();
 }
 add_shortcode('purerawz_approved_stories', 'purerawz_approved_stories_shortcode');
+
+/**
+ * AJAX handler to fetch approved stories
+ */
+function fetch_approved_stories() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
+    $votes_table = $wpdb->prefix . 'face_of_purerawz_story_votes';
+
+    // Fetch approved stories, ordered by approved_at (latest first)
+    $stories = $wpdb->get_results(
+        "SELECT s.*, 
+                (SELECT COUNT(*) FROM $votes_table v WHERE v.story_id = s.id AND v.vote_type = 'like') AS like_count,
+                (SELECT COUNT(*) FROM $votes_table v WHERE v.story_id = s.id AND v.vote_type = 'dislike') AS dislike_count
+         FROM $table_name s
+         WHERE s.status = 'approved'
+         ORDER BY s.approved_at DESC"
+    );
+
+    if (!$stories) {
+        echo '<p>No approved stories found.</p>';
+        wp_die();
+    }
+
+    foreach ($stories as $story) {
+        $like_count = intval($story->like_count);
+        $dislike_count = intval($story->dislike_count);
+
+        // Check if user has voted
+        $user_ip = $_SERVER['REMOTE_ADDR'];
+        $has_liked = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $votes_table WHERE story_id = %d AND user_ip = %s AND vote_type = 'like'",
+            $story->id, $user_ip
+        )) > 0;
+        $has_disliked = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $votes_table WHERE story_id = %d AND user_ip = %s AND vote_type = 'dislike'",
+            $story->id, $user_ip
+        )) > 0;
+
+        ?>
+        <div class="purerawz-story-card">
+            <h3><?php echo esc_html($story->name); ?></h3>
+            <p><strong>Email:</strong> <?php echo esc_html($story->email); ?></p>
+            <?php if ($story->social_media_handle): ?>
+                <p><strong>Social Media:</strong> <?php echo esc_html($story->social_media_handle); ?></p>
+            <?php endif; ?>
+            <?php if ($story->file_upload): ?>
+                <p><strong>Content:</strong> <a href="<?php echo esc_url($story->file_upload); ?>" target="_blank">View File</a></p>
+            <?php endif; ?>
+            <p><small>Approved on: <?php echo esc_html($story->approved_at); ?></small></p>
+            <p>
+                <strong>Likes:</strong> <?php echo esc_html($like_count); ?> | 
+                <strong>Dislikes:</strong> <?php echo esc_html($dislike_count); ?>
+            </p>
+            <div class="vote-buttons">
+                <button class="vote-button like-btn <?php echo $has_liked ? 'voted' : ''; ?>" 
+                        onclick="castStoryVote(<?php echo esc_js($story->id); ?>, 'like')">
+                    👍
+                </button>
+                <button class="vote-button dislike-btn <?php echo $has_disliked ? 'voted' : ''; ?>" 
+                        onclick="castStoryVote(<?php echo esc_js($story->id); ?>, 'dislike')">
+                    👎
+                </button>
+            </div>
+        </div>
+        <?php
+    }
+
+    wp_die();
+}
+add_action('wp_ajax_fetch_approved_stories', 'fetch_approved_stories');
+add_action('wp_ajax_nopriv_fetch_approved_stories', 'fetch_approved_stories');
+
+/**
+ * AJAX handler to cast a vote for a story
+ */
+function cast_story_vote() {
+    check_ajax_referer('story_vote_nonce', 'nonce');
+
+    global $wpdb;
+    $votes_table = $wpdb->prefix . 'face_of_purerawz_story_votes';
+
+    $story_id = intval($_POST['story_id']);
+    $vote_type = sanitize_text_field($_POST['vote_type']);
+    $user_ip = sanitize_text_field($_POST['user_ip']);
+
+    if (!in_array($vote_type, ['like', 'dislike'])) {
+        wp_send_json_error(array('message' => 'Invalid vote type'));
+        wp_die();
+    }
+
+    // Check if user has already voted for this story
+    $existing_vote = $wpdb->get_row($wpdb->prepare(
+        "SELECT vote_type FROM $votes_table WHERE story_id = %d AND user_ip = %s",
+        $story_id, $user_ip
+    ));
+
+    if ($existing_vote) {
+        // If user changes vote, update it; otherwise, prevent duplicate
+        if ($existing_vote->vote_type === $vote_type) {
+            wp_send_json_error(array('message' => 'You have already voted this way'));
+            wp_die();
+        } else {
+            $wpdb->update(
+                $votes_table,
+                array('vote_type' => $vote_type),
+                array('story_id' => $story_id, 'user_ip' => $user_ip),
+                array('%s'),
+                array('%d', '%s')
+            );
+        }
+    } else {
+        $wpdb->insert(
+            $votes_table,
+            array(
+                'story_id' => $story_id,
+                'vote_type' => $vote_type,
+                'user_ip' => $user_ip,
+                'created_at' => current_time('mysql')
+            ),
+            array('%d', '%s', '%s', '%s')
+        );
+    }
+
+    wp_send_json_success();
+    wp_die();
+}
+add_action('wp_ajax_cast_story_vote', 'cast_story_vote');
+add_action('wp_ajax_nopriv_cast_story_vote', 'cast_story_vote');
+
+
+
