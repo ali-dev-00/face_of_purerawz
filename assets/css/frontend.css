@@ -48,15 +48,56 @@
 
 /* vote button style */
 
-
-.vote-btn {
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-size: 1.2em;
-    margin: 5px;
+.purerawz-story-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
 }
 
-.voted {
-    color: red;
+.purerawz-story-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    width: 300px;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.purerawz-story-card h3 {
+    margin: 0 0 10px;
+    font-size: 1.5em;
+    color: #333;
+}
+
+.purerawz-story-card p {
+    margin: 5px 0;
+}
+
+.vote-buttons {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.vote-button {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.like-btn {
+    color: #28a745;
+}
+
+.dislike-btn {
+    color: #dc3545;
+}
+
+.vote-button.voted {
+    opacity: 0.6;
+    cursor: not-allowed;
 }

@@ -92,29 +92,27 @@ function face_of_purerawz_create_referral_links_table() {
 
 
 /**
- * 
- * Create the voting table for 
- *
-*/
-
-
-function purerawz_create_votes_table() {
+ * Create the custom votes table for Face of Purerawz stories
+ */
+function face_of_purerawz_create_story_votes_table() {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'purerawz_story_votes';
-
+    $table_name = $wpdb->prefix . 'face_of_purerawz_story_votes';
     $charset_collate = $wpdb->get_charset_collate();
 
-    $sql = "CREATE TABLE $table_name (
-        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        story_id BIGINT UNSIGNED NOT NULL,
-        user_ip VARCHAR(45) NOT NULL,
-        vote_type ENUM('like', 'dislike') NOT NULL,
-        UNIQUE KEY unique_vote (story_id, user_ip)
-    ) $charset_collate;";
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            story_id mediumint(9) NOT NULL,
+            vote_type ENUM('like', 'dislike') NOT NULL,
+            user_ip varchar(45) NOT NULL,
+            created_at datetime NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY unique_vote (story_id, user_ip, vote_type)
+        ) $charset_collate;";
 
-    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-    dbDelta($sql);
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
 }
 
-register_activation_hook(__FILE__, 'purerawz_create_votes_table');
 

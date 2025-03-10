@@ -164,7 +164,7 @@ function purerawz_approved_stories_shortcode() {
                         console.error('Vote failed:', data.data.message);
                     }
                 })
-                .catch(error => console.error('Error casting vote:', error));
+                .catch(error => console.error("Error casting vote:", error));
         }
 
         fetchStories();
@@ -212,6 +212,10 @@ function fetch_approved_stories() {
             $story->id, $user_ip
         )) > 0;
 
+        // Determine if buttons should be disabled
+        $like_disabled = $has_liked ? 'disabled' : '';
+        $dislike_disabled = $has_disliked ? 'disabled' : '';
+
         ?>
         <div class="purerawz-story-card">
             <h3><?php echo esc_html($story->name); ?></h3>
@@ -229,11 +233,13 @@ function fetch_approved_stories() {
             </p>
             <div class="vote-buttons">
                 <button class="vote-button like-btn <?php echo $has_liked ? 'voted' : ''; ?>" 
-                        onclick="castStoryVote(<?php echo esc_js($story->id); ?>, 'like')">
+                        onclick="castStoryVote(<?php echo esc_js($story->id); ?>, 'like')"
+                        <?php echo $like_disabled; ?>>
                     👍
                 </button>
                 <button class="vote-button dislike-btn <?php echo $has_disliked ? 'voted' : ''; ?>" 
-                        onclick="castStoryVote(<?php echo esc_js($story->id); ?>, 'dislike')">
+                        onclick="castStoryVote(<?php echo esc_js($story->id); ?>, 'dislike')"
+                        <?php echo $dislike_disabled; ?>>
                     👎
                 </button>
             </div>
@@ -302,6 +308,4 @@ function cast_story_vote() {
 }
 add_action('wp_ajax_cast_story_vote', 'cast_story_vote');
 add_action('wp_ajax_nopriv_cast_story_vote', 'cast_story_vote');
-
-
 

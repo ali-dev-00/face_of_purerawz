@@ -29,6 +29,7 @@ function face_of_purerawz_activate()
     face_of_purerawz_create_affiliates_table(); // create affiliates table
     face_of_purerawz_create_stories_table(); // create stories table
     face_of_purerawz_create_referral_links_table(); // create referral links table
+    face_of_purerawz_create_story_votes_table(); // create stories table
     //face_of_purerawz_sync_existing_affiliates(); // sync affiliates in custom table
     //face_of_purerawz_store_existing_affiliates(); // populate referral links
 
