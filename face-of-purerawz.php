@@ -61,6 +61,13 @@ function enqueue_plugin_assets()
         array(),
         FACE_OF_PURERAWZ_VERSION
     );
+    wp_enqueue_script(
+        'face-of-purerawz-frontend-script',
+        FACE_OF_PURERAWZ_URL . 'assets/js/frontend.js',
+        array('jquery'), // Ensure jQuery is loaded
+        FACE_OF_PURERAWZ_VERSION,
+        true // Load in footer
+    );
 }
 add_action('wp_enqueue_scripts', 'enqueue_plugin_assets');
 

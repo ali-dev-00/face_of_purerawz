@@ -127,22 +127,27 @@ add_shortcode('purerawz_story_form', 'purerawz_story_submission_form_shortcode')
 function purerawz_approved_stories_shortcode() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
+    $votes_table = $wpdb->prefix . 'purerawz_story_votes';
 
-    // Fetch approved stories, ordered by approved_at (latest first)
+    // Fetch approved stories
     $stories = $wpdb->get_results(
-        "SELECT * FROM $table_name WHERE status = 'approved' ORDER BY approved_at DESC"
+        "SELECT s.*, 
+                (SELECT COUNT(*) FROM $votes_table v WHERE v.story_id = s.id AND v.vote_type = 'like') AS likes,
+                (SELECT COUNT(*) FROM $votes_table v WHERE v.story_id = s.id AND v.vote_type = 'dislike') AS dislikes
+        FROM $table_name s
+        WHERE s.status = 'approved'
+        ORDER BY s.approved_at DESC"
     );
 
     if (!$stories) {
         return '<p>No approved stories found.</p>';
     }
 
-    // Start output buffering for the cards
     ob_start();
     ?>
     <div class="purerawz-story-cards">
         <?php foreach ($stories as $story): ?>
-            <div class="purerawz-story-card">
+            <div class="purerawz-story-card" data-story-id="<?php echo esc_attr($story->id); ?>">
                 <h3><?php echo esc_html($story->name); ?></h3>
                 <p><strong>Email:</strong> <?php echo esc_html($story->email); ?></p>
                 <?php if ($story->social_media_handle): ?>
@@ -152,9 +157,33 @@ function purerawz_approved_stories_shortcode() {
                     <p><strong>Content:</strong> <a href="<?php echo esc_url($story->file_upload); ?>" target="_blank">View File</a></p>
                 <?php endif; ?>
                 <p><small>Approved on: <?php echo esc_html($story->approved_at); ?></small></p>
+
+                <!-- Voting Section -->
+                <div class="vote-section">
+                    <button class="vote-btn like-btn" data-vote="like">
+                        👍 <span class="like-count"><?php echo esc_html($story->likes); ?></span>
+                    </button>
+                    <button class="vote-btn dislike-btn" data-vote="dislike">
+                        👎 <span class="dislike-count"><?php echo esc_html($story->dislikes); ?></span>
+                    </button>
+                </div>
             </div>
         <?php endforeach; ?>
     </div>
+
+
+    <style>
+        .vote-btn {
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            margin: 5px;
+        }
+        .voted {
+            color: red;
+        }
+    </style>
     <?php
     return ob_get_clean();
 }

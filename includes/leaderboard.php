@@ -10,7 +10,6 @@ function face_of_purerawz_affiliate_leaderboard_shortcode() {
     ob_start();
     ?>
     <div id="affiliate-leaderboard" class="affiliate-leaderboard">
-        <h2>AFFILIATE LEADERBOARD</h2>
         <table class="leaderboard-table">
             <thead>
                 <tr>
@@ -67,6 +66,7 @@ function fetch_affiliate_leaderboard() {
         LEFT JOIN $stories_table s ON a.user_id = s.user_id AND s.has_posted = 1 AND s.status = 'approved'
         WHERE a.status = 'active' AND s.id IS NOT NULL
         GROUP BY a.affiliate_id
+        HAVING total_sales > 0
         ORDER BY total_sales DESC, referral_count DESC
         LIMIT 30
     ";
