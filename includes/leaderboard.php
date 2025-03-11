@@ -98,46 +98,4 @@ function fetch_affiliate_leaderboard() {
 add_action('wp_ajax_fetch_affiliate_leaderboard', 'fetch_affiliate_leaderboard');
 add_action('wp_ajax_nopriv_fetch_affiliate_leaderboard', 'fetch_affiliate_leaderboard');
 
-/**
- * Add CSS for styling
- */
-function face_of_purerawz_leaderboard_styles() {
-    ?>
-    <style>
-        .affiliate-leaderboard {
-            text-align: center;
-        }
-        .affiliate-leaderboard h2 {
-            color: #dc3545;
-            font-size: 2.5em;
-            font-family: 'Arial', sans-serif;
-            margin-bottom: 20px;
-        }
-        .leaderboard-table {
-            width: 80%;
-            margin: 0 auto;
-            border-collapse: collapse;
-        }
-        .leaderboard-table th, .leaderboard-table td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: center;
-        }
-        .leaderboard-table th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        .top-performer:nth-child(1) {
-            background-color: #ffd700;
-            font-weight: bold;
-        }
-        .top-performer:nth-child(2) {
-            background-color: #c0c0c0;
-        }
-        .top-performer:nth-child(3) {
-            background-color: #cd7f32;
-        }
-    </style>
-    <?php
-}
-add_action('wp_head', 'face_of_purerawz_leaderboard_styles');
+

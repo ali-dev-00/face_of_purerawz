@@ -1,3 +1,7 @@
+
+/* story cards style */
+
+
 .purerawz-story-cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -46,7 +50,11 @@
     text-decoration: underline;
 }
 
+
+
 /* vote button style */
+
+
 
 .purerawz-story-cards {
     display: flex;
@@ -100,4 +108,42 @@
 .vote-button.voted {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+
+/* leaderboard css  */
+
+
+.affiliate-leaderboard {
+    text-align: center;
+}
+.affiliate-leaderboard h2 {
+    color: #dc3545;
+    font-size: 2.5em;
+    font-family: 'Arial', sans-serif;
+    margin-bottom: 20px;
+}
+.leaderboard-table {
+    width: 80%;
+    margin: 0 auto;
+    border-collapse: collapse;
+}
+.leaderboard-table th, .leaderboard-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: center;
+}
+.leaderboard-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+.top-performer:nth-child(1) {
+    background-color: #ffd700;
+    font-weight: bold;
+}
+.top-performer:nth-child(2) {
+    background-color: #c0c0c0;
+}
+.top-performer:nth-child(3) {
+    background-color: #cd7f32;
 }
