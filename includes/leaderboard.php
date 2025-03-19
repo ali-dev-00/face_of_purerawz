@@ -7,6 +7,12 @@ if (!defined('ABSPATH')) {
  * Register the [affiliate_leaderboard] shortcode
  */
 function face_of_purerawz_affiliate_leaderboard_shortcode() {
+    global $wpdb;
+    $winner_table = $wpdb->prefix . 'face_of_purerawz_winner_data';
+    
+    // Check if there's a winner
+    $has_winner = $wpdb->get_var("SELECT COUNT(*) FROM $winner_table WHERE is_winner = 1") > 0;
+    
     ob_start();
     ?>
     <div id="affiliate-leaderboard" class="affiliate-leaderboard">
@@ -25,20 +31,34 @@ function face_of_purerawz_affiliate_leaderboard_shortcode() {
         </table>
     </div>
 
+    <style>
+        .leaderboard-table .winner {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .leaderboard-table .rank-1 { background-color: #ffd700; } /* Gold */
+        .leaderboard-table .rank-2 { background-color: #c0c0c0; } /* Silver */
+        .leaderboard-table .rank-3 { background-color: #cd7f32; } /* Bronze */
+    </style>
+
     <script>
         function fetchLeaderboard() {
             fetch('<?php echo admin_url("admin-ajax.php?action=fetch_affiliate_leaderboard"); ?>')
                 .then(response => response.text())
                 .then(data => {
-                    console.log("leaderboard data",data);
+                    console.log("leaderboard data", data);
                     document.getElementById("leaderboard-body").innerHTML = data;
                 })
                 .catch(error => console.error("Error fetching leaderboard:", error));
         }
 
-        // Fetch leaderboard initially and every 15 seconds
+        // Fetch leaderboard initially
         fetchLeaderboard();
+        
+        <?php if (!$has_winner) : ?>
+        // Only set interval if there's no winner
         setInterval(fetchLeaderboard, 15000);
+        <?php endif; ?>
     </script>
     <?php
     return ob_get_clean();
@@ -55,19 +75,27 @@ function fetch_affiliate_leaderboard() {
     $referrals_table = $wpdb->prefix . 'affiliate_wp_referrals';
     $users_table = $wpdb->prefix . 'users';
     $stories_table = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
+    $winner_table = $wpdb->prefix . 'face_of_purerawz_winner_data';
 
     $query = "
-        SELECT a.affiliate_id, a.user_id, u.display_name, 
-               COUNT(r.referral_id) AS referral_count, 
-               COALESCE(SUM(r.amount), 0) AS total_sales
+        SELECT 
+            a.affiliate_id, 
+            a.user_id, 
+            u.display_name, 
+            COUNT(r.referral_id) AS referral_count, 
+            COALESCE(SUM(r.amount), 0) AS total_sales,
+            w.is_winner
         FROM $affiliates_table a
         LEFT JOIN $referrals_table r ON a.affiliate_id = r.affiliate_id AND r.status = 'paid'
         LEFT JOIN $users_table u ON a.user_id = u.ID
         LEFT JOIN $stories_table s ON a.user_id = s.user_id AND s.has_posted = 1 AND s.status = 'approved'
+        LEFT JOIN $winner_table w ON a.affiliate_id = w.affiliate_id
         WHERE a.status = 'active' AND s.id IS NOT NULL
         GROUP BY a.affiliate_id
-        HAVING total_sales > 0
-        ORDER BY total_sales DESC, referral_count DESC
+        ORDER BY 
+            CASE WHEN w.is_winner = 1 THEN 0 ELSE 1 END,  -- Winners first
+            total_sales DESC, 
+            referral_count DESC
         LIMIT 30
     ";
 
@@ -77,10 +105,22 @@ function fetch_affiliate_leaderboard() {
         $rank = 1;
         foreach ($leaderboard_data as $affiliate) {
             $username = !empty($affiliate->display_name) ? esc_html($affiliate->display_name) : 'Anonymous';
-            $highlight_class = ($rank <= 3) ? 'top-performer' : '';
             $total_sales = number_format($affiliate->total_sales, 2);
+            
+            // Determine row styling
+            $row_class = '';
+            if ($affiliate->is_winner == 1) {
+                $row_class = 'winner';
+            } elseif ($rank == 1) {
+                $row_class = 'rank-1';
+            } elseif ($rank == 2) {
+                $row_class = 'rank-2';
+            } elseif ($rank == 3) {
+                $row_class = 'rank-3';
+            }
+
             echo "
-                <tr class='".esc_attr($highlight_class)."'>
+                <tr class='".esc_attr($row_class)."'>
                     <td>".esc_html($rank)."</td>
                     <td>".esc_html($username)."</td>
                     <td>".esc_html($affiliate->referral_count)."</td>
@@ -97,5 +137,3 @@ function fetch_affiliate_leaderboard() {
 }
 add_action('wp_ajax_fetch_affiliate_leaderboard', 'fetch_affiliate_leaderboard');
 add_action('wp_ajax_nopriv_fetch_affiliate_leaderboard', 'fetch_affiliate_leaderboard');
-
-

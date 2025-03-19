@@ -1,20 +1,45 @@
 <?php
+
 /**
  * Display and process the story submission form
  */
 function purerawz_story_submission_form_shortcode() {
-
+    // Step 1: Non-logged-in user sees login prompt
     if (!is_user_logged_in()) {
-        return '<p>Please <a href="#">log in</a> to submit a story.</p>';
+        return '<p>Please <a href="' . wp_login_url(get_permalink()) . '">log in</a> to submit a story.</p>';
     }
 
+    global $wpdb;
+    $affiliates_table = $wpdb->prefix . 'face_of_purerawz_affiliates';
+    $stories_table = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
+    $user_id = get_current_user_id();
 
+    // Step 2: Check if the user is an affiliate (approved or not)
+    $affiliate_status = $wpdb->get_var($wpdb->prepare(
+        "SELECT status FROM $affiliates_table WHERE user_id = %d",
+        $user_id
+    ));
+
+    if (!$affiliate_status) {
+        // User is not an affiliate at all
+        return '<p class="error">Only approved affiliates can submit a story. <a href="' . esc_url(home_url('/affiliate-area')) . '">Apply for an affiliate account</a> to get started.</p>';
+    } elseif ($affiliate_status !== 'approved') {
+        // User is an affiliate but not approved
+        return '<p class="error">Only approved affiliates can submit a story. Your affiliate account is not yet approved. Please wait for approval or contact support.</p>';
+    }
+
+    // Step 3: Check if the user has already uploaded a story
+    $existing_story = $wpdb->get_var($wpdb->prepare(
+        "SELECT COUNT(*) FROM $stories_table WHERE user_id = %d",
+        $user_id
+    ));
+
+    if ($existing_story > 0) {
+        return '<p class="notice">Your story is already uploaded.</p>';
+    }
+
+    // Step 4: Approved affiliate with no prior story can submit
     if (isset($_POST['submit_story'])) {
-        global $wpdb;
-        $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
-
-       
-        $user_id = get_current_user_id();
         $name = get_user_meta($user_id, 'nickname', true) ? sanitize_text_field(get_user_meta($user_id, 'nickname', true)) : '';
         $email = get_userdata($user_id)->user_email ? sanitize_email(get_userdata($user_id)->user_email) : '';
         $social_media_handle = !empty($_POST['social_handles']) ? sanitize_text_field($_POST['social_handles']) : '';
@@ -22,7 +47,6 @@ function purerawz_story_submission_form_shortcode() {
         $status = 'pending'; // Default status as per DB
         $created_at = current_time('mysql');
 
-       
         if (empty($name)) {
             return '<p class="error">Name is required.</p>';
         }
@@ -30,7 +54,6 @@ function purerawz_story_submission_form_shortcode() {
             return '<p class="error">A valid email is required.</p>';
         }
 
-       
         if (!empty($_FILES['upload_file']['name'])) {
             $file = $_FILES['upload_file'];
             $file_name = sanitize_file_name($file['name']);
@@ -41,7 +64,6 @@ function purerawz_story_submission_form_shortcode() {
                 return '<p class="error">File size must not exceed 1 MB.</p>';
             }
 
-           
             $allowed_types = array('image/jpeg', 'image/png', 'video/mp4', 'video/quicktime');
             if (!in_array($file_type, $allowed_types)) {
                 return '<p class="error">Only JPG, PNG, MP4, or MOV files are allowed.</p>';
@@ -49,7 +71,6 @@ function purerawz_story_submission_form_shortcode() {
 
             $plugin_dir = plugin_dir_path(__FILE__);
             $upload_dir = $plugin_dir . 'assets/uploads/stories/';
-            
 
             if (!file_exists($upload_dir)) {
                 mkdir($upload_dir, 0755, true);
@@ -59,14 +80,14 @@ function purerawz_story_submission_form_shortcode() {
             $upload_path = $upload_dir . $unique_file_name;
 
             if (move_uploaded_file($file['tmp_name'], $upload_path)) {
-                $file_upload = plugin_dir_url(__FILE__) . 'assets/uploads/stories/' . $unique_file_name; 
+                $file_upload = plugin_dir_url(__FILE__) . 'assets/uploads/stories/' . $unique_file_name;
             } else {
                 return '<p class="error">File upload failed. Please try again.</p>';
             }
         }
 
         $result = $wpdb->insert(
-            $table_name,
+            $stories_table,
             array(
                 'user_id' => $user_id,
                 'name' => $name,
@@ -87,6 +108,7 @@ function purerawz_story_submission_form_shortcode() {
         }
     }
 
+    // Display the form for approved affiliates with no prior story
     ob_start();
     ?>
     <form method="post" action="" enctype="multipart/form-data">
@@ -115,9 +137,6 @@ function purerawz_story_submission_form_shortcode() {
 }
 add_shortcode('purerawz_story_form', 'purerawz_story_submission_form_shortcode');
 
-
-
-
 /**
  * Display and process the story cards by shortcode
  */
@@ -125,6 +144,7 @@ function purerawz_approved_stories_shortcode() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
     $votes_table = $wpdb->prefix . 'face_of_purerawz_story_votes';
+    $affiliates_table = $wpdb->prefix . 'face_of_purerawz_affiliates';
 
     ob_start();
     ?>
@@ -175,25 +195,27 @@ function purerawz_approved_stories_shortcode() {
 add_shortcode('purerawz_approved_stories', 'purerawz_approved_stories_shortcode');
 
 /**
- * AJAX handler to fetch approved stories
+ * AJAX handler to fetch approved stories from approved affiliates
  */
 function fetch_approved_stories() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
     $votes_table = $wpdb->prefix . 'face_of_purerawz_story_votes';
+    $affiliates_table = $wpdb->prefix . 'face_of_purerawz_affiliates';
 
-    // Fetch approved stories, ordered by approved_at (latest first)
+    // Fetch approved stories from approved affiliates, ordered by approved_at (latest first)
     $stories = $wpdb->get_results(
         "SELECT s.*, 
                 (SELECT COUNT(*) FROM $votes_table v WHERE v.story_id = s.id AND v.vote_type = 'like') AS like_count,
                 (SELECT COUNT(*) FROM $votes_table v WHERE v.story_id = s.id AND v.vote_type = 'dislike') AS dislike_count
          FROM $table_name s
-         WHERE s.status = 'approved'
+         INNER JOIN $affiliates_table a ON s.affiliate_id = a.affiliate_id
+         WHERE s.status = 'approved' AND a.status = 'approved'
          ORDER BY s.approved_at DESC"
     );
 
     if (!$stories) {
-        echo '<p>No approved stories found.</p>';
+        echo '<p>No approved stories from approved affiliates found.</p>';
         wp_die();
     }
 
@@ -308,4 +330,3 @@ function cast_story_vote() {
 }
 add_action('wp_ajax_cast_story_vote', 'cast_story_vote');
 add_action('wp_ajax_nopriv_cast_story_vote', 'cast_story_vote');
-

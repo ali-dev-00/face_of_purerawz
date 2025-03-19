@@ -34,6 +34,14 @@ function face_of_purerawz_admin_menu() {
         'face-of-purerawz-affiliate-stories',
         'render_affiliate_stories_page'
     );
+    add_submenu_page(
+        'face-of-purerawz',
+        'Pick a Winner',
+        'Pick a Winner',
+        'manage_options',
+        'face-of-purerawz-winner',
+        'render_winner_picker_page'
+    );
 }
 add_action('admin_menu', 'face_of_purerawz_admin_menu');
 
@@ -49,7 +57,8 @@ function face_of_purerawz_enqueue_assets($hook) {
     // Load only on the plugin's admin pages
     if ($hook !== 'toplevel_page_face-of-purerawz' && 
         $hook !== 'face-of-purerawz_page_face-of-purerawz-stories' && 
-        $hook !== 'face-of-purerawz_page_face-of-purerawz-affiliate-stories') {
+        $hook !== 'face-of-purerawz_page_face-of-purerawz-affiliate-stories' && 
+        $hook !== 'face-of-purerawz_page_face-of-purerawz-winner') {
         return;
     }
 
@@ -80,3 +89,4 @@ add_action('admin_enqueue_scripts', 'face_of_purerawz_enqueue_assets');
 // Include the stories request functionality
 require_once FACE_OF_PURERAWZ_DIR . 'admin/stories-table.php';
 require_once FACE_OF_PURERAWZ_DIR . 'admin/affiliate-stories-table.php';
+require_once FACE_OF_PURERAWZ_DIR . 'admin/pick-a-winner.php';

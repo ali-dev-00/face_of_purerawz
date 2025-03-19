@@ -30,6 +30,7 @@ function face_of_purerawz_activate()
     face_of_purerawz_create_stories_table(); // create stories table
     face_of_purerawz_create_referral_links_table(); // create referral links table
     face_of_purerawz_create_story_votes_table(); // create stories table
+     face_of_purerawz_create_winner_data_table(); 
     //face_of_purerawz_sync_existing_affiliates(); // sync affiliates in custom table
     //face_of_purerawz_store_existing_affiliates(); // populate referral links
 
@@ -174,4 +175,78 @@ function face_of_purerawz_sync_existing_affiliates() {
     }
 }
 
+
+/**
+ * 
+ * Update the winner data table manually with top 30 candidates
+ * 
+ */
+function face_of_purerawz_update_winner_data_manually() {
+    global $wpdb;
+
+    if (!current_user_can('manage_options') || !isset($_POST['update_winner_data_nonce']) || !wp_verify_nonce($_POST['update_winner_data_nonce'], 'update_winner_data')) {
+        return;
+    }
+
+    $affiliates_table = $wpdb->prefix . 'face_of_purerawz_affiliates';
+    $stories_table = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
+    $votes_table = $wpdb->prefix . 'face_of_purerawz_story_votes';
+    $users_table = $wpdb->prefix . 'users';
+    $winner_table = $wpdb->prefix . 'face_of_purerawz_winner_data';
+
+    // Fetch the top 30 eligible affiliates based on earnings
+    $top_limit = 30;
+    $query = "SELECT a.affiliate_id, 
+                     a.user_id,
+                     u.display_name AS name, 
+                     u.user_email AS email, 
+                     a.status, 
+                     a.referrals, 
+                     a.earnings, 
+                     s.status AS story_status,
+                     COALESCE(likes_count.votes, 0) AS likes
+              FROM $affiliates_table a
+              INNER JOIN $stories_table s ON a.user_id = s.user_id
+              INNER JOIN $users_table u ON a.user_id = u.ID
+              LEFT JOIN (
+                  SELECT story_id, COUNT(*) AS votes
+                  FROM $votes_table
+                  WHERE vote_type = 'like'
+                  GROUP BY story_id
+              ) likes_count ON s.id = likes_count.story_id
+              WHERE a.status = 'active' AND s.status = 'approved'
+              ORDER BY a.earnings DESC
+              LIMIT $top_limit";
+
+    $affiliates = $wpdb->get_results($query);
+
+    // Clear existing data
+    $wpdb->query("TRUNCATE TABLE $winner_table");
+
+    // Insert updated data for the top 30 candidates
+    foreach ($affiliates as $affiliate) {
+        $wpdb->insert(
+            $winner_table,
+            [
+                'affiliate_id'  => $affiliate->affiliate_id,
+                'user_id'       => $affiliate->user_id,
+                'name'          => $affiliate->name,
+                'email'         => $affiliate->email,
+                'status'        => $affiliate->status,
+                'story_status'  => $affiliate->story_status,
+                'referrals'     => $affiliate->referrals,
+                'earnings'      => $affiliate->earnings,
+                'likes'         => $affiliate->likes,
+                'is_winner'     => 0,
+                'last_updated'  => current_time('mysql'),
+            ],
+            ['%d', '%d', '%s', '%s', '%s', '%s', '%d', '%f', '%d', '%d', '%s']
+        );
+    }
+
+    wp_redirect(add_query_arg('updated', '1'));
+    exit;
+}
+add_action('admin_post_face_of_purerawz_update_winner_data', 'face_of_purerawz_update_winner_data_manually');
     
+

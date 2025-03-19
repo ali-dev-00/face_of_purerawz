@@ -116,3 +116,37 @@ function face_of_purerawz_create_story_votes_table() {
 }
 
 
+/**
+ * 
+ * Create the winner data table for Face of Purerawz
+ * 
+ */
+function face_of_purerawz_create_winner_data_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'face_of_purerawz_winner_data';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+        $sql = "CREATE TABLE $table_name (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            affiliate_id mediumint(9) NOT NULL,
+            user_id mediumint(9) NOT NULL,
+            name varchar(100) NOT NULL,
+            email varchar(100) NOT NULL,
+            status varchar(20) NOT NULL,
+            story_status varchar(20) NOT NULL,
+            referrals int(11) NOT NULL,
+            earnings decimal(10,2) NOT NULL,
+            likes int(11) NOT NULL DEFAULT 0,
+            is_winner tinyint(1) NOT NULL DEFAULT 0,
+            last_updated datetime NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY affiliate_id (affiliate_id)
+        ) $charset_collate;";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta($sql);
+    }
+}
+
+
