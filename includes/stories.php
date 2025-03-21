@@ -6,19 +6,20 @@
 function purerawz_story_submission_form_shortcode() {
     // Step 1: Non-logged-in user sees login prompt
     if (!is_user_logged_in()) {
-        return '<p>Please <a href="' . wp_login_url(get_permalink()) . '">log in</a> to submit a story.</p>';
+        return '<p>Please <a href="/my-account">log in</a> to submit a story.</p>';
     }
 
     global $wpdb;
-    $affiliates_table = $wpdb->prefix . 'face_of_purerawz_affiliates';
+    $affiliates_table = $wpdb->prefix . 'affiliate_wp_affiliates';
     $stories_table = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
     $user_id = get_current_user_id();
-
+ 
     // Step 2: Check if the user is an affiliate (approved or not)
     $affiliate_status = $wpdb->get_var($wpdb->prepare(
         "SELECT status FROM $affiliates_table WHERE user_id = %d",
         $user_id
     ));
+   
 
     if (!$affiliate_status) {
         // User is not an affiliate at all
@@ -52,6 +53,16 @@ function purerawz_story_submission_form_shortcode() {
         }
         if (empty($email) || !is_email($email)) {
             return '<p class="error">A valid email is required.</p>';
+        }
+
+        // Retrieve affiliate_id from affiliate_wp_affiliates table
+        $affiliate_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT affiliate_id FROM {$wpdb->prefix}affiliate_wp_affiliates WHERE user_id = %d",
+            $user_id
+        ));
+
+        if (empty($affiliate_id)) {
+            return '<p class="error">Affiliate ID not found. Please contact support.</p>';
         }
 
         if (!empty($_FILES['upload_file']['name'])) {
@@ -90,6 +101,7 @@ function purerawz_story_submission_form_shortcode() {
             $stories_table,
             array(
                 'user_id' => $user_id,
+                'affiliate_id' => $affiliate_id,
                 'name' => $name,
                 'email' => $email,
                 'social_media_handle' => $social_media_handle,
@@ -98,7 +110,7 @@ function purerawz_story_submission_form_shortcode() {
                 'created_at' => $created_at,
                 'approved_at' => null,
             ),
-            array('%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+            array('%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
         );
 
         if ($result) {

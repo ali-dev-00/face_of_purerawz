@@ -51,6 +51,7 @@ function face_of_purerawz_create_stories_table() {
         $sql = "CREATE TABLE $table_name (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             user_id mediumint(9) NOT NULL,
+            affiliate_id mediumint(9) NOT NULL,
             name varchar(100) NOT NULL,
             email varchar(100) NOT NULL,
             social_media_handle varchar(255) DEFAULT NULL,
@@ -59,6 +60,7 @@ function face_of_purerawz_create_stories_table() {
             created_at datetime NOT NULL,
             approved_at datetime DEFAULT NULL,
             PRIMARY KEY (id)
+            UNIQUE KEY affiliate_id (affiliate_id)
         ) $charset_collate;";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -116,6 +118,7 @@ function face_of_purerawz_create_story_votes_table() {
 }
 
 
+
 /**
  * 
  * Create the winner data table for Face of Purerawz
@@ -148,5 +151,4 @@ function face_of_purerawz_create_winner_data_table() {
         dbDelta($sql);
     }
 }
-
 
