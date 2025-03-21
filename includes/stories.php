@@ -13,18 +13,18 @@ function purerawz_story_submission_form_shortcode() {
     $affiliates_table = $wpdb->prefix . 'affiliate_wp_affiliates';
     $stories_table = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
     $user_id = get_current_user_id();
- 
+   
     // Step 2: Check if the user is an affiliate (approved or not)
     $affiliate_status = $wpdb->get_var($wpdb->prepare(
         "SELECT status FROM $affiliates_table WHERE user_id = %d",
         $user_id
     ));
+    
    
-
     if (!$affiliate_status) {
         // User is not an affiliate at all
         return '<p class="error">Only approved affiliates can submit a story. <a href="' . esc_url(home_url('/affiliate-area')) . '">Apply for an affiliate account</a> to get started.</p>';
-    } elseif ($affiliate_status !== 'approved') {
+    } elseif ($affiliate_status !== 'active') {
         // User is an affiliate but not approved
         return '<p class="error">Only approved affiliates can submit a story. Your affiliate account is not yet approved. Please wait for approval or contact support.</p>';
     }
@@ -34,7 +34,7 @@ function purerawz_story_submission_form_shortcode() {
         "SELECT COUNT(*) FROM $stories_table WHERE user_id = %d",
         $user_id
     ));
-
+    
     if ($existing_story > 0) {
         return '<p class="notice">Your story is already uploaded.</p>';
     }
