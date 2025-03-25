@@ -57,7 +57,7 @@ function face_of_purerawz_affiliate_leaderboard_shortcode() {
         
         <?php if (!$has_winner) : ?>
         // Only set interval if there's no winner
-        setInterval(fetchLeaderboard, 15000);
+        setInterval(fetchLeaderboard, 10000);
         <?php endif; ?>
     </script>
     <?php
@@ -77,7 +77,10 @@ function fetch_affiliate_leaderboard() {
     $stories_table = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
     $winner_table = $wpdb->prefix . 'face_of_purerawz_winner_data';
 
-    $query = "
+    // Define the start date (April 1, 2025)
+    $start_date = '2025-04-01';
+
+    $query = $wpdb->prepare("
         SELECT 
             a.affiliate_id, 
             a.user_id, 
@@ -86,18 +89,18 @@ function fetch_affiliate_leaderboard() {
             COALESCE(SUM(r.amount), 0) AS total_sales,
             w.is_winner
         FROM $affiliates_table a
-        LEFT JOIN $referrals_table r ON a.affiliate_id = r.affiliate_id AND r.status = 'paid'
+        INNER JOIN $stories_table s ON a.user_id = s.user_id AND s.status = 'approved'
+        LEFT JOIN $referrals_table r ON a.affiliate_id = r.affiliate_id AND r.status = 'paid' AND r.date >= %s
         LEFT JOIN $users_table u ON a.user_id = u.ID
-        LEFT JOIN $stories_table s ON a.user_id = s.user_id AND s.has_posted = 1 AND s.status = 'approved'
         LEFT JOIN $winner_table w ON a.affiliate_id = w.affiliate_id
-        WHERE a.status = 'active' AND s.id IS NOT NULL
+        WHERE a.status = 'active'
         GROUP BY a.affiliate_id
         ORDER BY 
             CASE WHEN w.is_winner = 1 THEN 0 ELSE 1 END,  -- Winners first
             total_sales DESC, 
             referral_count DESC
         LIMIT 30
-    ";
+    ", $start_date);
 
     $leaderboard_data = $wpdb->get_results($query);
     
@@ -130,7 +133,7 @@ function fetch_affiliate_leaderboard() {
             $rank++;
         }
     } else {
-        echo '<tr><td colspan="4">No approved performers with sales yet.</td></tr>';
+        echo '<tr><td colspan="4">No approved performers with sales yet since April 1, 2025.</td></tr>';
     }
 
     wp_die();

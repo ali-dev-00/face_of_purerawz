@@ -8,6 +8,29 @@ if (!defined('ABSPATH')) {
  * Register the admin menu for Face of Purerawz
  */
 function face_of_purerawz_admin_menu() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'face_of_purerawz_affiliate_stories';
+
+    // Count pending stories
+    $pending_count = $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(*) FROM $table_name WHERE status = %s",
+            'pending'
+        )
+    );
+    if ($pending_count === null) {
+        $pending_count = 0;
+    }
+
+    // Add the count to the menu title if there are pending stories
+    $stories_menu_title = 'Stories Request';
+    if ($pending_count > 0) {
+        $stories_menu_title .= sprintf(
+            ' <span class="face-of-purerawz-pending-count awaiting-mod">%d</span>',
+            $pending_count
+        );
+    }
+
     add_menu_page(
         'Face of Purerawz',
         'Face of Purerawz',
@@ -20,7 +43,7 @@ function face_of_purerawz_admin_menu() {
     add_submenu_page(
         'face-of-purerawz',
         'Stories Request',
-        'Stories Request',
+        $stories_menu_title, // Use the modified title with count
         'manage_options',
         'face-of-purerawz-stories',
         'face_of_purerawz_stories_request'

@@ -68,31 +68,6 @@ function face_of_purerawz_create_stories_table() {
     }
 }
 
-
-/**
- * 
- * Create the referral links table
- *
- */
-function face_of_purerawz_create_referral_links_table() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'face_of_purerawz_referral_links';
-    $charset_collate = $wpdb->get_charset_collate();
-
-    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
-        id mediumint(9) NOT NULL AUTO_INCREMENT,
-        affiliate_id mediumint(9) NOT NULL,
-        referral_link text NOT NULL,
-        created_at datetime NOT NULL,
-        PRIMARY KEY (id),
-        UNIQUE KEY affiliate_id (affiliate_id)
-    ) $charset_collate;";
-
-    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-    dbDelta($sql);
-}
-
-
 /**
  * Create the custom votes table for Face of Purerawz stories
  */
@@ -115,6 +90,31 @@ function face_of_purerawz_create_story_votes_table() {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);
     }
+}
+
+
+
+/**
+ * 
+ * Create the referral links table
+ *
+ */
+function face_of_purerawz_create_referral_links_table() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'face_of_purerawz_referral_links';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        affiliate_id mediumint(9) NOT NULL,
+        referral_link text NOT NULL,
+        created_at datetime NOT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY affiliate_id (affiliate_id)
+    ) $charset_collate;";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
 }
 
 
